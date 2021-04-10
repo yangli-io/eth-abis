@@ -1,13 +1,21 @@
 import path from 'path';
 import fs from 'fs';
 
+const fsPromises = fs.promises;
+
 const abiFolderPath = `${process.cwd()}/abi/`;
 
-async function getAbi(address: string) {
+export async function getAbi(address: string) {
     const filePath = path.join(abiFolderPath, address);
 
     try {
         await fsPromises.access(filePath, fs.constants.R_OK);
+
+        const data = await fsPromises.readFile(filePath);
+
+        const jsonData = JSON.parse(data.toString());
+
+        return jsonData;
     } catch (e) {
         const abi = `https://api.etherscan.io/api?module=contract&action=getabi&address=${address}&apikey=`;
 
@@ -17,9 +25,10 @@ async function getAbi(address: string) {
             const data = await res.json();
 
             const jsonData = JSON.parse(data.result);
-            abis[address] = jsonData;
             // happens async
             fsPromises.writeFile(filePath, data.result);
+
+            return jsonData;
         }
     }
 }
